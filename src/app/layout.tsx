@@ -1,6 +1,17 @@
+import type { Metadata, Viewport } from "next";
 import "../styles/globals.css";
-import { Suspense } from "react";
 import { Providers } from "./Providers";
+
+export const metadata: Metadata = {
+  title: "Image comments",
+  description: "Comment on an image together, Figma style.",
+  robots: { index: false },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export default function RootLayout({
   children,
@@ -9,27 +20,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <title>Liveblocks</title>
-        <meta name="robots" content="noindex" />
-        <meta name="viewport" content="width=device-width, user-scalable=no" />
-        <link
-          href="https://liveblocks.io/favicon-32x32.png"
-          rel="icon"
-          sizes="32x32"
-          type="image/png"
-        />
-        <link
-          href="https://liveblocks.io/favicon-16x16.png"
-          rel="icon"
-          sizes="16x16"
-          type="image/png"
-        />
-      </head>
       <body>
-        <Providers>
-          <Suspense>{children}</Suspense>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

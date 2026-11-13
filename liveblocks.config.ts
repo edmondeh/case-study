@@ -8,11 +8,12 @@ declare global {
         avatar: string;
       }; // Accessible through `user.info`
     };
-    // Custom metadata set on threads, for useThreads, useCreateThread, etc.
+    // Where a thread is pinned on the image, normalized to 0..1 of the
+    // image's width and height (see src/lib/geometry.ts). Not pixels, so
+    // it is independent of zoom, pan and screen size.
     ThreadMetadata: {
       x: number;
       y: number;
-      zIndex: number;
     };
   }
 }

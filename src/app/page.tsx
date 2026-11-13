@@ -1,43 +1,12 @@
-"use client";
+import { CommentingApp } from "../components/CommentingApp";
+import { getImage } from "../lib/rooms";
 
-import { useMemo } from "react";
-import { useSearchParams } from "next/navigation";
-import { RoomProvider } from "@liveblocks/react/suspense";
-import { Loading } from "../components/Loading";
-import { ClientSideSuspense } from "@liveblocks/react";
-import { ErrorBoundary } from "react-error-boundary";
-import { CommentsCanvas } from "../components/CommentsCanvas";
-import { DEFAULT_IMAGE, getRoomId } from "../lib/rooms";
+type PageProps = {
+  searchParams: Promise<{ image?: string | string[] }>;
+};
 
-export default function Page() {
-  const roomId = useExampleRoomId(getRoomId(DEFAULT_IMAGE));
-
-  return (
-    <RoomProvider id={roomId}>
-      <ErrorBoundary
-        fallback={
-          <div className="error">There was an error while getting threads.</div>
-        }
-      >
-        <ClientSideSuspense fallback={<Loading />}>
-          <CommentsCanvas />
-        </ClientSideSuspense>
-      </ErrorBoundary>
-    </RoomProvider>
-  );
-}
-
-/**
- * This function is used when deploying an example on liveblocks.io.
- * You can ignore it completely if you run the example locally.
- */
-function useExampleRoomId(roomId: string) {
-  const params = useSearchParams();
-  const exampleId = params?.get("exampleId");
-
-  const exampleRoomId = useMemo(() => {
-    return exampleId ? `${roomId}-${exampleId}` : roomId;
-  }, [roomId, exampleId]);
-
-  return exampleRoomId;
+export default async function Page({ searchParams }: PageProps) {
+  const { image } = await searchParams;
+  const imageId = typeof image === "string" ? image : undefined;
+  return <CommentingApp image={getImage(imageId)} />;
 }
