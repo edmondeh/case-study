@@ -1,7 +1,7 @@
 "use client";
 
 import type { CommentBody, ThreadData } from "@liveblocks/client";
-import { useCreateThread, useSelf } from "@liveblocks/react";
+import { useCreateThread, useSelf, useStatus } from "@liveblocks/react";
 import {
   CommentPin,
   FloatingComposer,
@@ -41,7 +41,14 @@ type Props = {
   selection: Selection;
   onSelect: (selection: Selection) => void;
   onClose: () => void;
+  /** Called right after a new thread is created (optimistically). */
+  onCreated: (post: NewPost) => void;
+  /** Called when the user resolves or deletes a thread themselves. */
+  onRemovedByUser: (threadId: string) => void;
 };
+
+/** A just-submitted comment, kept so it can be restored if posting fails. */
+export type NewPost = { threadId: string; anchor: Anchor; body: CommentBody };
 
 /**
  * Renders a pin for every thread, plus the composer for a new comment.
@@ -58,6 +65,8 @@ export function CommentLayer({
   selection,
   onSelect,
   onClose,
+  onCreated,
+  onRemovedByUser,
 }: Props) {
   const panelWidth = getPanelWidth(container.width);
 
@@ -73,6 +82,11 @@ export function CommentLayer({
     return { point, side, visible: isInView(point, container) };
   }
 
+  const draft =
+    selection.kind === "draft"
+      ? { ...selection, ...place(selection.anchor) }
+      : null;
+
   return (
     <div className="comment-layer">
       {threads.map((thread) => {
@@ -80,12 +94,12 @@ export function CommentLayer({
         // version that stored pixels) instead of drawing them anywhere.
         if (!isValidAnchor(thread.metadata)) return null;
         const { point, side, visible } = place(thread.metadata);
-        // Unmount pins scrolled out of view. If the thread was open it
-        // reopens when its pin comes back, because selection is kept.
-        if (!visible) return null;
-
         const isOpen =
           selection.kind === "thread" && selection.threadId === thread.id;
+        // Skip pins scrolled out of view, except the open one: unmounting
+        // it would throw away a reply being typed.
+        if (!visible && !isOpen) return null;
+
         return (
           <ThreadPin
             key={thread.id}
@@ -97,18 +111,20 @@ export function CommentLayer({
               if (open) onSelect({ kind: "thread", threadId: thread.id });
               else if (isOpen) onClose();
             }}
+            onRemoved={() => onRemovedByUser(thread.id)}
           />
         );
       })}
 
-      {selection.kind === "draft" && (
+      {draft && (
         <DraftComposer
           // A new key per spot resets the composer if the user starts over.
-          key={`${selection.anchor.x},${selection.anchor.y}`}
-          anchor={selection.anchor}
-          initialBody={selection.body}
-          {...place(selection.anchor)}
-          onCreated={(threadId) => onSelect({ kind: "thread", threadId })}
+          key={`${draft.anchor.x},${draft.anchor.y}`}
+          anchor={draft.anchor}
+          initialBody={draft.body}
+          point={draft.point}
+          side={draft.side}
+          onCreated={onCreated}
           onCancel={onClose}
         />
       )}
@@ -122,12 +138,14 @@ function ThreadPin({
   side,
   open,
   onOpenChange,
+  onRemoved,
 }: {
   thread: ThreadData;
   point: Point;
   side: ThreadSide;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRemoved: () => void;
 }) {
   const authorId = thread.comments[0]?.userId;
   return (
@@ -137,6 +155,8 @@ function ThreadPin({
       onOpenChange={onOpenChange}
       side={side}
       align="start"
+      onResolvedChange={(resolved) => resolved && onRemoved()}
+      onThreadDelete={onRemoved}
     >
       <PinPosition point={point}>
         <CommentPin
@@ -154,7 +174,6 @@ function DraftComposer({
   initialBody,
   point,
   side,
-  visible,
   onCreated,
   onCancel,
 }: {
@@ -162,12 +181,14 @@ function DraftComposer({
   initialBody?: CommentBody;
   point: Point;
   side: ThreadSide;
-  visible: boolean;
-  onCreated: (threadId: string) => void;
+  onCreated: (post: NewPost) => void;
   onCancel: () => void;
 }) {
   const createThread = useCreateThread();
   const selfId = useSelf((me) => me.id);
+  // While offline, keep the text but block sending: a post sent without a
+  // connection fails in a way Liveblocks doesn't report to listeners.
+  const isOffline = useStatus() !== "connected";
 
   // We create the thread ourselves (instead of letting the composer do it)
   // to get the new thread's id, so it opens right after posting.
@@ -178,10 +199,8 @@ function DraftComposer({
       attachments: comment.attachments,
       metadata: { x: anchor.x, y: anchor.y },
     });
-    onCreated(thread.id);
+    onCreated({ threadId: thread.id, anchor, body: comment.body });
   }
-
-  if (!visible) return null;
 
   return (
     <FloatingComposer
@@ -192,6 +211,7 @@ function DraftComposer({
       side={side}
       align="start"
       autoFocus
+      disabled={isOffline}
       defaultValue={initialBody}
       onComposerSubmit={handleSubmit}
     >

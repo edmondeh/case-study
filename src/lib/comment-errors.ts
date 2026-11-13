@@ -1,5 +1,8 @@
 import type { LiveblocksErrorContext } from "@liveblocks/client";
 
+export const POST_FAILED_MESSAGE =
+  "Your comment couldn't be posted. Your text is back in the box so you can try again.";
+
 /**
  * A short, human message for a failed comment action, or null when the
  * error is shown somewhere else (connection errors have their own banner)
@@ -14,7 +17,7 @@ export function describeCommentError(
 ): string | null {
   switch (context.type) {
     case "CREATE_THREAD_ERROR":
-      return "Your comment couldn't be posted. Your text is back in the box so you can try again.";
+      return POST_FAILED_MESSAGE;
     case "CREATE_COMMENT_ERROR":
       return "Your reply couldn't be posted. Please try again.";
     case "EDIT_COMMENT_ERROR":

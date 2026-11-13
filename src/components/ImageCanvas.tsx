@@ -14,7 +14,10 @@ import {
   initialCanvasState,
   ZOOM_STEP,
 } from "../lib/canvas-state";
-import { describeCommentError } from "../lib/comment-errors";
+import {
+  describeCommentError,
+  POST_FAILED_MESSAGE,
+} from "../lib/comment-errors";
 import {
   containerToAnchor,
   isOnImage,
@@ -28,15 +31,20 @@ import {
   useWheelNavigation,
   useZoomShortcuts,
 } from "../hooks/canvas";
-import { CommentLayer, NO_SELECTION, type Selection } from "./CommentLayer";
+import {
+  CommentLayer,
+  NO_SELECTION,
+  type NewPost,
+  type Selection,
+} from "./CommentLayer";
 import { useToast } from "./Toasts";
 import { ZoomControls } from "./ZoomControls";
 
 /**
- * Within this many ms of a thread or composer closing, a tap only counts as
- * "close", not "add a comment" (see handlePointerDown).
+ * If a thread we just posted disappears within this time without an error
+ * event, we assume posting failed (see the pendingPost effect).
  */
-const CLOSE_GRACE_MS = 100;
+const PENDING_POST_MS = 10_000;
 
 type ImageStatus = "loading" | "loaded" | "error";
 
@@ -88,6 +96,27 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
   const [selection, setSelection] = useState<Selection>(NO_SELECTION);
   const showToast = useToast();
 
+  // The open thread can disappear without Radix telling us (resolved,
+  // deleted, or removed by another user). Treat that as nothing open, so
+  // the next click on the image isn't swallowed as a "close" click.
+  const activeSelection: Selection =
+    selection.kind === "thread" &&
+    !threads?.some((thread) => thread.id === selection.threadId)
+      ? NO_SELECTION
+      : selection;
+
+  // The comment we just posted, until we know it wasn't rolled back.
+  const pendingPost = useRef<(NewPost & { postedAt: number }) | null>(null);
+
+  const handleCreated = useCallback((post: NewPost) => {
+    pendingPost.current = { ...post, postedAt: performance.now() };
+    setSelection({ kind: "thread", threadId: post.threadId });
+  }, []);
+
+  const restoreDraft = useCallback((post: Omit<NewPost, "threadId">) => {
+    setSelection({ kind: "draft", anchor: post.anchor, body: post.body });
+  }, []);
+
   // Liveblocks rolls back a comment action the server rejects. Explain what
   // happened, and for a new comment reopen the composer with the text.
   useErrorListener((error) => {
@@ -100,26 +129,38 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
       context.type === "CREATE_THREAD_ERROR" &&
       isValidAnchor(context.metadata)
     ) {
-      setSelection({
-        kind: "draft",
-        anchor: context.metadata,
-        body: context.body,
-      });
+      pendingPost.current = null;
+      restoreDraft({ anchor: context.metadata, body: context.body });
     }
   });
 
+  // When posting fails because of the network (not an HTTP error),
+  // Liveblocks 3.25 rolls the thread back without an error event. Detect
+  // that: our new thread vanished shortly after posting, and the user
+  // didn't resolve or delete it.
+  useEffect(() => {
+    const pending = pendingPost.current;
+    if (!pending || !threads) return;
+    if (threads.some((thread) => thread.id === pending.threadId)) return;
+    pendingPost.current = null;
+    if (performance.now() - pending.postedAt > PENDING_POST_MS) return;
+    showToast(POST_FAILED_MESSAGE, "error");
+    restoreDraft(pending);
+  }, [threads, showToast, restoreDraft]);
+
+  const handleRemovedByUser = useCallback((threadId: string) => {
+    if (pendingPost.current?.threadId === threadId) {
+      pendingPost.current = null;
+    }
+  }, []);
+
   // A click outside an open thread or composer should only close it, like
-  // in Figma, not also start a new comment. Radix closes the popover on
-  // pointerdown, so by the time our tap fires (pointerup) the selection is
-  // already empty. We therefore decide at pointerdown, and also remember
-  // when something closed in case Radix's listener ran first.
-  const closedAt = useRef(0);
+  // in Figma, not also start a new comment. Radix closes the popover on the
+  // click that follows the press, after our tap (pointerup) has run, so we
+  // decide at pointerdown whether something is open.
   const tapOnlyCloses = useRef(false);
 
-  const closeSelection = useCallback(() => {
-    closedAt.current = performance.now();
-    setSelection(NO_SELECTION);
-  }, []);
+  const closeSelection = useCallback(() => setSelection(NO_SELECTION), []);
 
   function handleTap(point: Point) {
     if (tapOnlyCloses.current) {
@@ -145,9 +186,7 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
   });
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
-    tapOnlyCloses.current =
-      selection.kind !== "none" ||
-      performance.now() - closedAt.current < CLOSE_GRACE_MS;
+    tapOnlyCloses.current = activeSelection.kind !== "none";
     handlers.onPointerDown(event);
   }
 
@@ -194,9 +233,11 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
             viewport={viewport}
             image={state.image}
             container={state.container}
-            selection={selection}
+            selection={activeSelection}
             onSelect={setSelection}
             onClose={closeSelection}
+            onCreated={handleCreated}
+            onRemovedByUser={handleRemovedByUser}
           />
         )}
 
