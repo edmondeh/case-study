@@ -1,31 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { NAMES } from "../../../database";
+import { getUser } from "../../../database";
 
 /**
- * Get users' info from their ID
- * For `resolveUsers` in liveblocks.config.ts
+ * Returns user info for the given ids, in the same order. Used by
+ * `resolveUsers` in Providers.tsx to show names and avatars on comments.
+ * Unknown ids resolve to `null`, which Liveblocks shows as an anonymous user.
  */
-
-function getUser(userId: string) {
-  if (!userId.startsWith("user-")) {
-    return;
-  }
-
-  const userIndex = Number(userId.replace(/^\D+/g, "")) ?? 0;
-
-  return {
-    name: NAMES[userIndex],
-    avatar: `https://liveblocks.io/avatars/avatar-${userIndex}.png`,
-  };
-}
-
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const userIds = searchParams.getAll("userIds");
-
-  if (!userIds || !Array.isArray(userIds)) {
-    return new NextResponse("Missing or invalid userIds", { status: 400 });
+  const userIds = request.nextUrl.searchParams.getAll("userIds");
+  if (userIds.length === 0) {
+    return new NextResponse("Missing userIds", { status: 400 });
   }
-
-  return NextResponse.json(userIds.map((userId) => getUser(userId)));
+  return NextResponse.json(userIds.map((id) => getUser(id)?.info ?? null));
 }

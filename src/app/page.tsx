@@ -7,9 +7,10 @@ import { Loading } from "../components/Loading";
 import { ClientSideSuspense } from "@liveblocks/react";
 import { ErrorBoundary } from "react-error-boundary";
 import { CommentsCanvas } from "../components/CommentsCanvas";
+import { DEFAULT_IMAGE, getRoomId } from "../lib/rooms";
 
 export default function Page() {
-  const roomId = useExampleRoomId("liveblocks:examples:nextjs-comments-canvas");
+  const roomId = useExampleRoomId(getRoomId(DEFAULT_IMAGE));
 
   return (
     <RoomProvider id={roomId}>
