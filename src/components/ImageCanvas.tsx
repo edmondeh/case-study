@@ -1,6 +1,6 @@
 "use client";
 
-import { useStatus, useThreads } from "@liveblocks/react";
+import { useErrorListener, useStatus, useThreads } from "@liveblocks/react";
 import {
   useCallback,
   useEffect,
@@ -14,7 +14,13 @@ import {
   initialCanvasState,
   ZOOM_STEP,
 } from "../lib/canvas-state";
-import { containerToAnchor, isOnImage, type Point } from "../lib/geometry";
+import { describeCommentError } from "../lib/comment-errors";
+import {
+  containerToAnchor,
+  isOnImage,
+  isValidAnchor,
+  type Point,
+} from "../lib/geometry";
 import type { CanvasImage } from "../lib/rooms";
 import {
   useContainerSize,
@@ -23,6 +29,7 @@ import {
   useZoomShortcuts,
 } from "../hooks/canvas";
 import { CommentLayer, NO_SELECTION, type Selection } from "./CommentLayer";
+import { useToast } from "./Toasts";
 import { ZoomControls } from "./ZoomControls";
 
 /**
@@ -79,6 +86,27 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
   const connection = useStatus();
   const { threads } = useThreads({ query: { resolved: false } });
   const [selection, setSelection] = useState<Selection>(NO_SELECTION);
+  const showToast = useToast();
+
+  // Liveblocks rolls back a comment action the server rejects. Explain what
+  // happened, and for a new comment reopen the composer with the text.
+  useErrorListener((error) => {
+    const message = describeCommentError(error.context);
+    if (!message) return;
+    showToast(message, "error");
+
+    const { context } = error;
+    if (
+      context.type === "CREATE_THREAD_ERROR" &&
+      isValidAnchor(context.metadata)
+    ) {
+      setSelection({
+        kind: "draft",
+        anchor: context.metadata,
+        body: context.body,
+      });
+    }
+  });
 
   // A click outside an open thread or composer should only close it, like
   // in Figma, not also start a new comment. Radix closes the popover on
@@ -101,7 +129,12 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
     if (!state.image) return;
     const anchor = containerToAnchor(point, viewport, state.image);
     if (!isOnImage(anchor)) return;
-    if (connection !== "connected") return;
+    if (connection !== "connected") {
+      showToast(
+        "Comments are offline right now. You can add one once the connection is back."
+      );
+      return;
+    }
     setSelection({ kind: "draft", anchor });
   }
 

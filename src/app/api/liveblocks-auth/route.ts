@@ -48,6 +48,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const { status, body } = await session.authorize();
+    if (status === 401 || status === 403) {
+      // Liveblocks' JSON error is meant for developers; log it and send the
+      // user one readable sentence instead.
+      console.error("Liveblocks rejected the secret key", status, body);
+      return textResponse(
+        "Liveblocks rejected LIVEBLOCKS_SECRET_KEY. Check that it is the secret key (sk_…) of your Liveblocks project.",
+        403
+      );
+    }
     const response = new NextResponse(body, { status });
     if (!existingUser) {
       response.cookies.set(USER_COOKIE, user.id, {
