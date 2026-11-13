@@ -1,12 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useStatus, useThreads } from "@liveblocks/react";
+import {
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
 import {
   canvasReducer,
   initialCanvasState,
   ZOOM_STEP,
 } from "../lib/canvas-state";
-import type { Point } from "../lib/geometry";
+import { containerToAnchor, isOnImage, type Point } from "../lib/geometry";
 import type { CanvasImage } from "../lib/rooms";
 import {
   useContainerSize,
@@ -14,7 +22,14 @@ import {
   useWheelNavigation,
   useZoomShortcuts,
 } from "../hooks/canvas";
+import { CommentLayer, NO_SELECTION, type Selection } from "./CommentLayer";
 import { ZoomControls } from "./ZoomControls";
+
+/**
+ * Within this many ms of a thread or composer closing, a tap only counts as
+ * "close", not "add a comment" (see handlePointerDown).
+ */
+const CLOSE_GRACE_MS = 100;
 
 type ImageStatus = "loading" | "loaded" | "error";
 
@@ -61,15 +76,47 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
   useWheelNavigation(containerRef, dispatch);
   useZoomShortcuts(dispatch);
 
-  const handleTap = useCallback((_point: Point) => {
-    // Comments are added here in a later step.
+  const connection = useStatus();
+  const { threads } = useThreads({ query: { resolved: false } });
+  const [selection, setSelection] = useState<Selection>(NO_SELECTION);
+
+  // A click outside an open thread or composer should only close it, like
+  // in Figma, not also start a new comment. Radix closes the popover on
+  // pointerdown, so by the time our tap fires (pointerup) the selection is
+  // already empty. We therefore decide at pointerdown, and also remember
+  // when something closed in case Radix's listener ran first.
+  const closedAt = useRef(0);
+  const tapOnlyCloses = useRef(false);
+
+  const closeSelection = useCallback(() => {
+    closedAt.current = performance.now();
+    setSelection(NO_SELECTION);
   }, []);
+
+  function handleTap(point: Point) {
+    if (tapOnlyCloses.current) {
+      setSelection(NO_SELECTION);
+      return;
+    }
+    if (!state.image) return;
+    const anchor = containerToAnchor(point, viewport, state.image);
+    if (!isOnImage(anchor)) return;
+    if (connection !== "connected") return;
+    setSelection({ kind: "draft", anchor });
+  }
 
   const { isPanning, handlers } = usePanGesture({
     containerRef,
     onPan: (dx, dy) => dispatch({ type: "panBy", dx, dy }),
     onTap: handleTap,
   });
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    tapOnlyCloses.current =
+      selection.kind !== "none" ||
+      performance.now() - closedAt.current < CLOSE_GRACE_MS;
+    handlers.onPointerDown(event);
+  }
 
   function retry() {
     setStatus("loading");
@@ -85,6 +132,7 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
         className="canvas"
         data-panning={isPanning || undefined}
         {...handlers}
+        onPointerDown={handlePointerDown}
       >
         <div
           className="canvas-image"
@@ -106,6 +154,18 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
             onError={() => setStatus("error")}
           />
         </div>
+
+        {isLoaded && state.image && state.container && (
+          <CommentLayer
+            threads={threads ?? []}
+            viewport={viewport}
+            image={state.image}
+            container={state.container}
+            selection={selection}
+            onSelect={setSelection}
+            onClose={closeSelection}
+          />
+        )}
 
         {status === "loading" && (
           <div className="canvas-message" role="status">

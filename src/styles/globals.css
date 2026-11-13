@@ -49,6 +49,16 @@ body {
   --lb-accent: var(--accent);
 }
 
+/* Comment panels shrink on narrow screens. Keep in sync with
+   getPanelWidth() in src/lib/thread-side.ts, which the flip rule uses. */
+.lb-floating-thread {
+  --lb-floating-thread-size: min(350px, calc(100vw - 20px));
+}
+
+.lb-floating-composer {
+  --lb-floating-composer-size: min(350px, calc(100vw - 20px));
+}
+
 /* App chrome */
 
 .app-header {
@@ -118,6 +128,35 @@ body {
   display: block;
   max-width: none;
   pointer-events: none;
+}
+
+/* Unscaled layer above the image; only the pins themselves take clicks. */
+.comment-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pin[data-state="open"] {
+  z-index: 1;
+}
+
+.pin .lb-comment-pin {
+  transition: transform 0.1s ease;
+}
+
+.pin:hover .lb-comment-pin,
+.pin[data-state="open"] .lb-comment-pin {
+  transform: scale(1.08);
+  transform-origin: top left;
 }
 
 .canvas-message {
