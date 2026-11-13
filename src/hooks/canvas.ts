@@ -3,6 +3,7 @@ import {
   useRef,
   useState,
   type Dispatch,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
@@ -18,6 +19,9 @@ export const DRAG_THRESHOLD = 4;
 
 /** Elements inside the canvas that handle their own pointer events. */
 export const CANVAS_IGNORE_ATTRIBUTE = "data-canvas-ignore";
+
+/** Presses on these never start a pan or a tap. */
+const INTERACTIVE_SELECTOR = `button, a, input, textarea, [${CANVAS_IGNORE_ATTRIBUTE}]`;
 
 /** Reports the container's size on mount and whenever it changes. */
 export function useContainerSize(
@@ -62,6 +66,7 @@ export function usePanGesture({
   onTap: (point: Point) => void;
 }) {
   const gesture = useRef<Gesture | null>(null);
+  const suppressNextClick = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
 
   function onPointerDown(event: ReactPointerEvent<HTMLElement>) {
@@ -71,8 +76,10 @@ export function usePanGesture({
     // React bubbles events from portals (open threads and composers live in
     // document.body) through the component tree, so check the real DOM.
     if (!container.contains(target)) return;
-    if (target.closest(`[${CANVAS_IGNORE_ATTRIBUTE}]`)) return;
+    // Pins, and buttons such as "Try again", handle their own clicks.
+    if (target.closest(INTERACTIVE_SELECTOR)) return;
 
+    suppressNextClick.current = false;
     gesture.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -81,8 +88,6 @@ export function usePanGesture({
       lastY: event.clientY,
       isDrag: false,
     };
-    // Keep receiving moves even if the pointer leaves the canvas mid-drag.
-    container.setPointerCapture(event.pointerId);
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLElement>) {
@@ -97,6 +102,10 @@ export function usePanGesture({
       if (distance < DRAG_THRESHOLD) return;
       current.isDrag = true;
       setIsPanning(true);
+      // Only capture once it is a drag, so it keeps working outside the
+      // window. Capturing on press would retarget a plain click to the
+      // canvas, and buttons inside it would never get their click.
+      containerRef.current?.setPointerCapture(event.pointerId);
     }
 
     onPan(event.clientX - current.lastX, event.clientY - current.lastY);
@@ -110,8 +119,20 @@ export function usePanGesture({
     gesture.current = null;
     setIsPanning(false);
 
+    if (current.isDrag) {
+      // A mouse drag still ends with a "click". Radix closes an open thread
+      // or composer on an outside click, which would throw away a draft
+      // just because the user panned. Swallow that one click (touch drags
+      // don't produce one, so only do this for the mouse).
+      if (event.pointerType === "mouse") {
+        suppressNextClick.current = true;
+        window.setTimeout(() => (suppressNextClick.current = false), 0);
+      }
+      return;
+    }
+
     const container = containerRef.current;
-    if (current.isDrag || !container) return;
+    if (!container) return;
     const rect = container.getBoundingClientRect();
     onTap({ x: current.startX - rect.left, y: current.startY - rect.top });
   }
@@ -122,9 +143,23 @@ export function usePanGesture({
     setIsPanning(false);
   }
 
+  // Capture phase, so the click is stopped before Radix's document
+  // listener sees it.
+  function onClickCapture(event: ReactMouseEvent<HTMLElement>) {
+    if (!suppressNextClick.current) return;
+    suppressNextClick.current = false;
+    event.stopPropagation();
+  }
+
   return {
     isPanning,
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
+    handlers: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      onPointerCancel,
+      onClickCapture,
+    },
   };
 }
 
