@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1080" viewBox="0 0 1440 1080" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <!-- Original illustration made for this project: a design mock-up of a
+       fictional travel planning product ("Waypoint") to comment on. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd7a8"/>
+      <stop offset="0.55" stop-color="#ff9f7a"/>
+      <stop offset="1" stop-color="#c76b98"/>
+    </linearGradient>
+    <linearGradient id="hero-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6f4ff"/>
+      <stop offset="1" stop-color="#eef7ff"/>
+    </linearGradient>
+    <clipPath id="card-clip">
+      <rect x="800" y="190" width="540" height="420" rx="28"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1440" height="1080" fill="#ffffff"/>
+  <rect width="1440" height="680" fill="url(#hero-bg)"/>
+
+  <!-- Navigation -->
+  <g>
+    <circle cx="124" cy="64" r="18" fill="#4b3cff"/>
+    <path d="M116 64 l6 8 l12 -16" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="152" y="73" font-size="26" font-weight="700" fill="#16123a">Waypoint</text>
+    <text x="560" y="72" font-size="18" fill="#4a4766">Product</text>
+    <text x="664" y="72" font-size="18" fill="#4a4766">Pricing</text>
+    <text x="764" y="72" font-size="18" fill="#4a4766">Stories</text>
+    <text x="864" y="72" font-size="18" fill="#4a4766">Help</text>
+    <text x="1150" y="72" font-size="18" fill="#16123a" font-weight="600">Log in</text>
+    <rect x="1230" y="40" width="120" height="48" rx="24" fill="#16123a"/>
+    <text x="1290" y="71" font-size="17" fill="#fff" font-weight="600" text-anchor="middle">Sign up</text>
+  </g>
+
+  <!-- Hero copy -->
+  <g>
+    <rect x="96" y="196" width="214" height="36" rx="18" fill="#e4e0ff"/>
+    <text x="203" y="220" font-size="15" fill="#4b3cff" font-weight="600" text-anchor="middle">NEW · Group itineraries</text>
+    <text x="96" y="306" font-size="64" font-weight="800" fill="#16123a" letter-spacing="-1.5">Plan trips your</text>
+    <text x="96" y="380" font-size="64" font-weight="800" fill="#16123a" letter-spacing="-1.5">whole team will love</text>
+    <text x="96" y="440" font-size="22" fill="#4a4766">Collect ideas, vote on places and share one itinerary</text>
+    <text x="96" y="472" font-size="22" fill="#4a4766">that updates for everyone in real time.</text>
+    <rect x="96" y="520" width="210" height="60" rx="30" fill="#4b3cff"/>
+    <text x="201" y="557" font-size="19" fill="#fff" font-weight="700" text-anchor="middle">Start planning</text>
+    <rect x="326" y="520" width="190" height="60" rx="30" fill="#fff" stroke="#d6d3ea" stroke-width="2"/>
+    <text x="421" y="557" font-size="19" fill="#16123a" font-weight="600" text-anchor="middle">Watch demo</text>
+    <g fill="#8a87a3" font-size="15">
+      <circle cx="108" cy="626" r="14" fill="#ffb86b"/>
+      <circle cx="128" cy="626" r="14" fill="#7bd4c4"/>
+      <circle cx="148" cy="626" r="14" fill="#9c8cff"/>
+      <text x="176" y="631">Loved by 12,000+ travel teams</text>
+    </g>
+  </g>
+
+  <!-- Hero illustration -->
+  <g>
+    <rect x="812" y="206" width="540" height="420" rx="28" fill="#16123a" opacity="0.08"/>
+    <g clip-path="url(#card-clip)">
+      <rect x="800" y="190" width="540" height="420" fill="url(#sky)"/>
+      <circle cx="1190" cy="330" r="62" fill="#fff4d6"/>
+      <path d="M800 520 L930 380 L1010 460 L1110 340 L1230 470 L1340 400 L1340 610 L800 610 Z" fill="#7a4a8c"/>
+      <path d="M800 560 L900 480 L990 540 L1090 450 L1200 540 L1340 470 L1340 610 L800 610 Z" fill="#4e2f6b"/>
+      <path d="M1110 340 L1140 372 L1122 368 L1110 384 L1096 366 L1084 370 Z" fill="#fff" opacity="0.85"/>
+    </g>
+    <!-- Floating itinerary card -->
+    <rect x="744" y="470" width="300" height="168" rx="20" fill="#fff"/>
+    <rect x="744" y="470" width="300" height="168" rx="20" fill="none" stroke="#e8e6f3"/>
+    <text x="770" y="510" font-size="15" fill="#8a87a3" font-weight="600">DAY 2 · LISBON</text>
+    <circle cx="784" cy="546" r="10" fill="#4b3cff"/>
+    <text x="804" y="552" font-size="17" fill="#16123a" font-weight="600">Tram 28 at sunrise</text>
+    <circle cx="784" cy="590" r="10" fill="#ffb86b"/>
+    <text x="804" y="596" font-size="17" fill="#16123a" font-weight="600">Pastéis in Belém</text>
+    <rect x="958" y="532" width="62" height="26" rx="13" fill="#e9f8f4"/>
+    <text x="989" y="550" font-size="13" fill="#1b8a6b" font-weight="700" text-anchor="middle">+4 votes</text>
+  </g>
+
+  <!-- Feature cards -->
+  <g>
+    <text x="720" y="770" font-size="38" font-weight="800" fill="#16123a" text-anchor="middle" letter-spacing="-0.8">Everything in one place</text>
+
+    <rect x="96" y="820" width="400" height="200" rx="24" fill="#f7f6fc"/>
+    <rect x="128" y="852" width="56" height="56" rx="16" fill="#e4e0ff"/>
+    <path d="M144 880 h24 M156 868 v24" stroke="#4b3cff" stroke-width="4" stroke-linecap="round"/>
+    <text x="128" y="946" font-size="22" font-weight="700" fill="#16123a">Collect ideas</text>
+    <rect x="128" y="966" width="320" height="10" rx="5" fill="#dedbec"/>
+    <rect x="128" y="986" width="250" height="10" rx="5" fill="#dedbec"/>
+
+    <rect x="520" y="820" width="400" height="200" rx="24" fill="#f7f6fc"/>
+    <rect x="552" y="852" width="56" height="56" rx="16" fill="#ffe8d1"/>
+    <path d="M568 886 l8 8 l16 -20" stroke="#e07a1f" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="552" y="946" font-size="22" font-weight="700" fill="#16123a">Vote together</text>
+    <rect x="552" y="966" width="320" height="10" rx="5" fill="#dedbec"/>
+    <rect x="552" y="986" width="210" height="10" rx="5" fill="#dedbec"/>
+
+    <rect x="944" y="820" width="400" height="200" rx="24" fill="#f7f6fc"/>
+    <rect x="976" y="852" width="56" height="56" rx="16" fill="#d9f4ee"/>
+    <circle cx="1004" cy="880" r="12" stroke="#1b8a6b" stroke-width="4" fill="none"/>
+    <path d="M1004 872 v8 l6 4" stroke="#1b8a6b" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <text x="976" y="946" font-size="22" font-weight="700" fill="#16123a">Live itinerary</text>
+    <rect x="976" y="966" width="320" height="10" rx="5" fill="#dedbec"/>
+    <rect x="976" y="986" width="270" height="10" rx="5" fill="#dedbec"/>
+  </g>
+</svg>
