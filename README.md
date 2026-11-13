@@ -115,11 +115,14 @@ pin, in container pixels:
 2. Open right if the pin (32px) + gap (6px) + panel (350px) fit before the
    visible right edge.
 3. Otherwise open left if the panel fits before the pin.
-4. If it fits on neither side (small or zoomed-out image), open towards the
-   side with more room.
+4. If it fits beside the pin on neither side of the image (small or
+   zoomed-out image), prefer the side with more image, as long as the panel
+   still fits on screen there.
+5. If it fits on neither side of the screen (phones), open below the pin.
+   Radix only slides left/right panels up and down, so they would be cut
+   off; a panel below the pin is slid sideways to stay on screen.
 
-It runs on every render, so a thread flips as you pan or zoom. Liveblocks
-(through Radix) still keeps panels inside the browser window. Note: the
+It runs on every render, so a thread flips as you pan or zoom. Note: the
 design mock-ups open threads outwards even near the edge; I followed the
 written brief ("open inwards").
 
