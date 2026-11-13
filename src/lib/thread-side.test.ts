@@ -52,9 +52,7 @@ describe("getThreadSide", () => {
     expect(getThreadSide({ ...phone, anchorX: 180, panelWidth })).toBe(
       "bottom"
     );
-    expect(getThreadSide({ ...phone, anchorX: 40, panelWidth })).toBe(
-      "bottom"
-    );
+    expect(getThreadSide({ ...phone, anchorX: 40, panelWidth })).toBe("bottom");
   });
 });
 

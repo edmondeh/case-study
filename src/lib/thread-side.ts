@@ -66,8 +66,7 @@ export function getThreadSide({
   if (leftEdgeOfPanel >= visibleLeft) return "left";
 
   // Rule 4: fits on screen, preferring the side with more image.
-  const fitsRightOnScreen =
-    rightEdgeOfPanel <= containerWidth - SCREEN_PADDING;
+  const fitsRightOnScreen = rightEdgeOfPanel <= containerWidth - SCREEN_PADDING;
   const fitsLeftOnScreen = leftEdgeOfPanel >= SCREEN_PADDING;
   const imageRoomRight = visibleRight - (anchorX + pinSize + gap);
   const imageRoomLeft = anchorX - gap - visibleLeft;

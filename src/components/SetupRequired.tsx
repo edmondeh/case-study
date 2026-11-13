@@ -22,8 +22,8 @@ export function SetupRequired() {
             <code>sk_</code>) from your project&apos;s API keys page.
           </li>
           <li>
-            Copy <code>.env.example</code> to <code>.env.local</code> and
-            paste the key after <code>LIVEBLOCKS_SECRET_KEY=</code>.
+            Copy <code>.env.example</code> to <code>.env.local</code> and paste
+            the key after <code>LIVEBLOCKS_SECRET_KEY=</code>.
           </li>
           <li>
             Restart <code>npm run dev</code> and reload this page.
