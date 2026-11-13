@@ -255,6 +255,55 @@ button:disabled {
   background: var(--border);
 }
 
+/* Setup screen (missing key) */
+
+.setup {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 24px;
+  overflow: auto;
+}
+
+.setup-card {
+  max-width: 560px;
+  padding: 28px 32px;
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  line-height: 1.55;
+}
+
+.setup-card h1 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.setup-card p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.setup-card ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.setup-card li + li {
+  margin-top: 8px;
+}
+
+.setup-card a {
+  color: var(--accent);
+}
+
+.setup-card code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-hover);
+  font-size: 0.9em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation-duration: 2s;
