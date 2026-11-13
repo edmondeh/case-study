@@ -7,6 +7,9 @@ export function Providers({ children }: PropsWithChildren) {
   return (
     <LiveblocksProvider
       authEndpoint="/api/liveblocks-auth"
+      // The free plan shows a "Powered by Liveblocks" badge; keep it away
+      // from the zoom controls in the bottom-right corner.
+      badgeLocation="bottom-left"
       // Get users' info from their ID
       resolveUsers={async ({ userIds }) => {
         const searchParams = new URLSearchParams(
