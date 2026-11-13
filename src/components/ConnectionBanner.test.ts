@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { getConnectionBanner } from "./ConnectionBanner";
 
-const base = { isSlow: false, reason: null, threadsFailed: false };
+const base = {
+  hasConnected: false,
+  isSlow: false,
+  reason: null,
+  threadsFailed: false,
+};
 
 describe("getConnectionBanner", () => {
   it("shows nothing when connected", () => {
@@ -28,14 +33,21 @@ describe("getConnectionBanner", () => {
     });
   });
 
-  it("warns while reconnecting, with retry once it is slow", () => {
+  it("warns while reconnecting, without a retry (the client retries)", () => {
+    const banner = getConnectionBanner({
+      ...base,
+      status: "reconnecting",
+      isSlow: true,
+    });
+    expect(banner).toMatchObject({ tone: "warning" });
+    expect(banner?.action).toBeUndefined();
+  });
+
+  it("treats 'connecting' after a past connection as a lost connection", () => {
+    // Liveblocks reports "connecting" again after a long outage.
     expect(
-      getConnectionBanner({ ...base, status: "reconnecting" })?.action
-    ).toBeUndefined();
-    expect(
-      getConnectionBanner({ ...base, status: "reconnecting", isSlow: true })
-        ?.action
-    ).toBe("retry");
+      getConnectionBanner({ ...base, status: "connecting", hasConnected: true })
+    ).toMatchObject({ tone: "warning", message: /Connection lost/ });
   });
 
   it("offers a reload when threads failed to load", () => {

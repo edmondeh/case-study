@@ -26,16 +26,24 @@ type Banner = {
 /** What to tell the user for a given connection state, if anything. */
 export function getConnectionBanner({
   status,
+  hasConnected,
   isSlow,
   reason,
   threadsFailed,
 }: {
   status: Status;
+  /** Whether this room has been connected before in this session. */
+  hasConnected: boolean;
   isSlow: boolean;
   reason: string | null;
   threadsFailed: boolean;
 }): Banner | null {
-  switch (status) {
+  // After a long outage the client reports "connecting" rather than
+  // "reconnecting"; for the user it is still a lost connection.
+  const effectiveStatus =
+    status === "connecting" && hasConnected ? "reconnecting" : status;
+
+  switch (effectiveStatus) {
     case "connected":
       return threadsFailed
         ? {
@@ -45,10 +53,11 @@ export function getConnectionBanner({
           }
         : null;
     case "reconnecting":
+      // No Retry here: the client is already retrying, and reconnect()
+      // would restart its backoff rather than try sooner.
       return {
         tone: "warning",
         message: "Connection lost. Reconnecting… New comments are paused.",
-        action: isSlow ? "retry" : undefined,
       };
     case "disconnected":
       return {
@@ -80,6 +89,11 @@ export function ConnectionBanner() {
   const { error: threadsError } = useThreads({ query: { resolved: false } });
   const [reason, setReason] = useState<string | null>(null);
   const [slowStatus, setSlowStatus] = useState<Status | null>(null);
+  const [hasConnected, setHasConnected] = useState(false);
+
+  useEffect(() => {
+    if (status === "connected") setHasConnected(true);
+  }, [status]);
 
   // Keep the server's reason (e.g. "LIVEBLOCKS_SECRET_KEY is not set") to
   // show alongside a refused connection.
@@ -102,6 +116,7 @@ export function ConnectionBanner() {
 
   const banner = getConnectionBanner({
     status,
+    hasConnected,
     isSlow: slowStatus === status,
     reason,
     threadsFailed: threadsError !== undefined,
@@ -115,7 +130,11 @@ export function ConnectionBanner() {
         {banner.detail && <span>{banner.detail}</span>}
       </div>
       {banner.action === "retry" && (
-        <button type="button" className="button" onClick={() => room.reconnect()}>
+        <button
+          type="button"
+          className="button"
+          onClick={() => room.reconnect()}
+        >
           Retry
         </button>
       )}
