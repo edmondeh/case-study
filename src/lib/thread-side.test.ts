@@ -27,19 +27,34 @@ describe("getThreadSide", () => {
     expect(getThreadSide({ ...zoomed, anchorX: 100 })).toBe("right");
   });
 
-  it("picks the side with more image when neither side fits", () => {
-    // A 400px wide image, too small for a 350px panel on either side of
-    // most pins.
+  it("picks the side with more image when neither side fits the image", () => {
+    // A 400px wide image, too small for a 350px panel beside most pins,
+    // in a wide window where both sides fit on screen.
     const small = { imageLeft: 500, imageRight: 900, containerWidth: 1400 };
+    // Left room 14px, right room 342px: right.
     expect(getThreadSide({ ...small, anchorX: 520 })).toBe("right");
-    expect(getThreadSide({ ...small, anchorX: 880 })).toBe("left");
+    // Left room 344px, right room 12px: left, though it doesn't fit the image.
+    expect(getThreadSide({ ...small, anchorX: 850 })).toBe("left");
   });
 
-  it("respects a narrower panel on small screens", () => {
-    const phone = { imageLeft: 0, imageRight: 375, containerWidth: 375 };
-    const panelWidth = getPanelWidth(375); // 355 -> capped at 350
-    expect(getThreadSide({ ...phone, anchorX: 10, panelWidth })).toBe("right");
-    expect(getThreadSide({ ...phone, anchorX: 360, panelWidth })).toBe("left");
+  it("uses the other side when the preferred one would leave the screen", () => {
+    // A small image hugging the window's right edge (panned there). The pin
+    // is in the image's left half, so "right" has more image (42px vs
+    // 14px), but a right panel would end at 720 + 388 = 1108 > 790.
+    const input = { imageLeft: 700, imageRight: 800, containerWidth: 800 };
+    expect(getThreadSide({ ...input, anchorX: 720 })).toBe("left");
+  });
+
+  it("opens below the pin when nothing fits beside it (phones)", () => {
+    // A 375px phone with the image fitted 32..343.
+    const phone = { imageLeft: 32, imageRight: 343, containerWidth: 375 };
+    const panelWidth = getPanelWidth(375); // 350
+    expect(getThreadSide({ ...phone, anchorX: 180, panelWidth })).toBe(
+      "bottom"
+    );
+    expect(getThreadSide({ ...phone, anchorX: 40, panelWidth })).toBe(
+      "bottom"
+    );
   });
 });
 

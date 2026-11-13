@@ -14,14 +14,16 @@
  *    container.
  * 2. If the panel fits to the right within it, open right (the default).
  * 3. Otherwise, if it fits to the left, open left (inwards).
- * 4. If it fits on neither side (small or zoomed-out image), open towards
- *    the side with more room, so the panel covers as much image as it can.
- *
- * Radix (used by Liveblocks under the hood) still flips or shifts the panel
- * if it would leave the browser window; this rule only adds the image edge.
+ * 4. If it fits on neither side of the image (small or zoomed-out image),
+ *    prefer the side with more image, as long as the panel still fits on
+ *    screen on that side; otherwise try the other side.
+ * 5. If it fits on neither side of the screen (phones), open below the
+ *    pin. Radix only slides a left/right panel up and down, never sideways,
+ *    so a left/right panel would be cut off; a bottom panel is slid
+ *    sideways to stay on screen.
  */
 
-export type ThreadSide = "left" | "right";
+export type ThreadSide = "left" | "right" | "bottom";
 
 /** Liveblocks: --lb-comment-pin-size */
 export const PIN_SIZE = 32;
@@ -29,6 +31,8 @@ export const PIN_SIZE = 32;
 export const PANEL_GAP = 6;
 /** Liveblocks: --lb-floating-thread-size / --lb-floating-composer-size */
 export const PANEL_WIDTH = 350;
+/** Radix: collisionPadding, the margin it keeps from the window edge */
+export const SCREEN_PADDING = 10;
 
 export type ThreadSideInput = {
   /** Anchor x in container px (the pin's left edge). */
@@ -54,12 +58,28 @@ export function getThreadSide({
   const visibleLeft = Math.max(imageLeft, 0);
   const visibleRight = Math.min(imageRight, containerWidth);
 
-  const roomRight = visibleRight - (anchorX + pinSize + gap);
-  const roomLeft = anchorX - gap - visibleLeft;
+  const rightEdgeOfPanel = anchorX + pinSize + gap + panelWidth;
+  const leftEdgeOfPanel = anchorX - gap - panelWidth;
 
-  if (roomRight >= panelWidth) return "right";
-  if (roomLeft >= panelWidth) return "left";
-  return roomLeft > roomRight ? "left" : "right";
+  // Rules 2 and 3: fits within the visible image.
+  if (rightEdgeOfPanel <= visibleRight) return "right";
+  if (leftEdgeOfPanel >= visibleLeft) return "left";
+
+  // Rule 4: fits on screen, preferring the side with more image.
+  const fitsRightOnScreen =
+    rightEdgeOfPanel <= containerWidth - SCREEN_PADDING;
+  const fitsLeftOnScreen = leftEdgeOfPanel >= SCREEN_PADDING;
+  const imageRoomRight = visibleRight - (anchorX + pinSize + gap);
+  const imageRoomLeft = anchorX - gap - visibleLeft;
+  const preferred: ThreadSide =
+    imageRoomLeft > imageRoomRight ? "left" : "right";
+  const fits = { left: fitsLeftOnScreen, right: fitsRightOnScreen };
+  if (fits[preferred]) return preferred;
+  const other = preferred === "left" ? "right" : "left";
+  if (fits[other]) return other;
+
+  // Rule 5: no room beside the pin at all.
+  return "bottom";
 }
 
 /**
