@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
   const existingUser = getUser(request.cookies.get(USER_COOKIE)?.value);
   const user = existingUser ?? getRandomUser();
 
+  await ensureRoomExists(liveblocks, await readRoomId(request));
+
   const session = liveblocks.prepareSession(user.id, { userInfo: user.info });
   session.allow(`${ROOM_PREFIX}*`, session.FULL_ACCESS);
 
@@ -73,6 +75,39 @@ export async function POST(request: NextRequest) {
     // problem between this server and Liveblocks.
     return textResponse("Could not reach Liveblocks. Retrying…", 503);
   }
+}
+
+/** Rooms this server process has already made sure exist. */
+const knownRooms = new Set<string>();
+
+/**
+ * Creates the room before the client connects to it. When a room doesn't
+ * exist yet, Liveblocks' first answer to the client says comments can't be
+ * written there, so the very first visitor of a room (e.g. someone running
+ * the app with a fresh key) got a disabled comment box until they reloaded.
+ * Failing here must not block sign-in, so errors are only logged.
+ */
+async function ensureRoomExists(liveblocks: Liveblocks, roomId?: string) {
+  if (!roomId || knownRooms.has(roomId)) return;
+  try {
+    // No default access: only people with a token from this route get in.
+    await liveblocks.getOrCreateRoom(roomId, { defaultAccesses: [] });
+    knownRooms.add(roomId);
+  } catch (error) {
+    console.error("Could not create Liveblocks room", roomId, error);
+  }
+}
+
+/** The Liveblocks client sends `{ room }` when it needs a room token. */
+async function readRoomId(request: NextRequest): Promise<string | undefined> {
+  const body: unknown = await request.json().catch(() => null);
+  const room =
+    typeof body === "object" && body !== null && "room" in body
+      ? body.room
+      : undefined;
+  return typeof room === "string" && room.startsWith(ROOM_PREFIX)
+    ? room
+    : undefined;
 }
 
 function textResponse(message: string, status: number) {
