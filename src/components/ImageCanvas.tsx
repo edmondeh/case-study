@@ -203,6 +203,8 @@ export function ImageCanvas({ image }: { image: CanvasImage }) {
         ref={containerRef}
         className="canvas"
         data-panning={isPanning || undefined}
+        // Exposed for styling hooks and end-to-end tests.
+        data-connection={connection}
         {...handlers}
         onPointerDown={handlePointerDown}
       >

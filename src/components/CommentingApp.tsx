@@ -3,16 +3,21 @@
 import { RoomProvider } from "@liveblocks/react";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import type { CanvasImage } from "../lib/rooms";
-import { getRoomId } from "../lib/rooms";
 import { ConnectionBanner } from "./ConnectionBanner";
 import { ImageCanvas } from "./ImageCanvas";
 import { ToastProvider } from "./Toasts";
 
-/** Client-side root: one Liveblocks room per image. */
-export function CommentingApp({ image }: { image: CanvasImage }) {
+/** Client-side root: one Liveblocks room per image (see lib/rooms.ts). */
+export function CommentingApp({
+  image,
+  roomId,
+}: {
+  image: CanvasImage;
+  roomId: string;
+}) {
   return (
     <ToastProvider>
-      <RoomProvider id={getRoomId(image)}>
+      <RoomProvider id={roomId}>
         <header className="app-header">
           <h1>Image comments</h1>
           <p className="app-hint">

@@ -38,6 +38,19 @@ export function getImage(id: string | undefined): CanvasImage {
 /** Room ids start with this prefix; the auth route only grants these. */
 export const ROOM_PREFIX = "image-comments:";
 
-export function getRoomId(image: CanvasImage): string {
-  return `${ROOM_PREFIX}${image.id}`;
+/**
+ * The room for an image. An optional variant (from `?room=…`) gives a
+ * separate, empty set of comments on the same image, e.g. for a clean demo
+ * or so each end-to-end test run starts from nothing.
+ */
+export function getRoomId(image: CanvasImage, variant?: string): string {
+  const base = `${ROOM_PREFIX}${image.id}`;
+  return variant ? `${base}:${variant}` : base;
+}
+
+/** Accepts short, URL-safe variants only; anything else means "none". */
+export function parseRoomVariant(
+  value: string | undefined
+): string | undefined {
+  return value && /^[A-Za-z0-9_-]{1,64}$/.test(value) ? value : undefined;
 }

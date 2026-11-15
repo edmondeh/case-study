@@ -1,9 +1,12 @@
 import { CommentingApp } from "../components/CommentingApp";
 import { SetupRequired } from "../components/SetupRequired";
-import { getImage } from "../lib/rooms";
+import { getImage, getRoomId, parseRoomVariant } from "../lib/rooms";
 
 type PageProps = {
-  searchParams: Promise<{ image?: string | string[] }>;
+  searchParams: Promise<{
+    image?: string | string[];
+    room?: string | string[];
+  }>;
 };
 
 // Render per request so the env check runs at request time. Otherwise a
@@ -15,7 +18,12 @@ export default async function Page({ searchParams }: PageProps) {
     return <SetupRequired />;
   }
 
-  const { image } = await searchParams;
-  const imageId = typeof image === "string" ? image : undefined;
-  return <CommentingApp image={getImage(imageId)} />;
+  const { image: imageParam, room } = await searchParams;
+  const image = getImage(single(imageParam));
+  const roomId = getRoomId(image, parseRoomVariant(single(room)));
+  return <CommentingApp image={image} roomId={roomId} />;
+}
+
+function single(value: string | string[] | undefined): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }
