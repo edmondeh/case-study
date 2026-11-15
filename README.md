@@ -7,7 +7,8 @@ open inwards. Comments are shared in real time with
 [Liveblocks](https://liveblocks.io).
 
 Built for the Limitless Outsourcing full stack case study (Part B). The
-original brief is in [docs/BRIEF.md](docs/BRIEF.md).
+original brief is in [docs/BRIEF.md](docs/BRIEF.md), and my answer to the
+optional Part A (product thinking) is in [RESPONSE.md](RESPONSE.md).
 
 ## Run it locally (about 3 minutes)
 
@@ -42,12 +43,13 @@ If the key is missing the app shows these steps instead of failing.
 To see real-time collaboration, open the app in a normal window and in a
 private window: each browser gets its own demo user (kept in a cookie).
 
-| Command             | What it does                    |
-| ------------------- | ------------------------------- |
-| `npm run dev`       | Start the dev server            |
-| `npm test`          | Run the unit tests (Vitest)     |
-| `npm run typecheck` | Type-check the project          |
+| Command             | What it does                           |
+| ------------------- | -------------------------------------- |
+| `npm run dev`       | Start the dev server                   |
+| `npm test`          | Run the unit tests (Vitest)            |
+| `npm run typecheck` | Type-check the project                 |
 | `npm run build`     | Production build (works without a key) |
+| `npm run test:e2e`  | Build, then run the Playwright tests   |
 
 ## Features
 
@@ -138,13 +140,13 @@ Figma, instead of also starting a new comment.
 
 ### State
 
-| State                         | Where                                       | Shared? |
-| ----------------------------- | ------------------------------------------- | ------- |
-| Threads and their positions   | Liveblocks (`useThreads`, `useCreateThread`) | Yes     |
+| State                               | Where                                                      | Shared?                          |
+| ----------------------------------- | ---------------------------------------------------------- | -------------------------------- |
+| Threads and their positions         | Liveblocks (`useThreads`, `useCreateThread`)               | Yes                              |
 | Pan, zoom, container and image size | `useReducer` with [canvasReducer](src/lib/canvas-state.ts) | No, each user has their own view |
-| Which thread or draft is open | `useState` in `ImageCanvas`                 | No      |
-| Image loading status          | `useState` in `ImageCanvas`                 | No      |
-| Connection status             | Liveblocks (`useStatus`)                    | No      |
+| Which thread or draft is open       | `useState` in `ImageCanvas`                                | No                               |
+| Image loading status                | `useState` in `ImageCanvas`                                | No                               |
+| Connection status                   | Liveblocks (`useStatus`)                                   | No                               |
 
 The view state is a pure reducer so pan, zoom, fit and resize are unit
 tested without a browser. The image re-fits on window resize until the user
@@ -173,18 +175,18 @@ src/
 
 ## Error handling
 
-| What goes wrong | What the user sees | How to try it |
-| --- | --- | --- |
-| No key in `.env.local` | Setup steps instead of the app | Remove the key and reload |
-| Wrong key | Banner: "Couldn't connect to the comment server" with the reason and Retry | Put `sk_wrong` in `.env.local` |
-| Connection lost | Banner: "Reconnecting… new comments are paused" | DevTools → Network → Offline |
-| Slow first connection | After 8s, a banner with Retry instead of silence | Throttle the network |
-| Click while offline | Toast explaining why no composer opened | Go offline, click the image |
-| Empty comment | Can't be sent (Liveblocks disables send for blank text) | Try to post spaces |
-| Posting fails | Toast, and the composer reopens at the same spot with the text | |
-| Edit/delete/resolve fails | Toast; Liveblocks rolls the change back | |
-| Image fails to load | Message with Try again; comments are disabled until it loads | Open `/?image=broken` |
-| Unexpected render error | Error boundary with Try again | |
+| What goes wrong           | What the user sees                                                         | How to try it                  |
+| ------------------------- | -------------------------------------------------------------------------- | ------------------------------ |
+| No key in `.env.local`    | Setup steps instead of the app                                             | Remove the key and reload      |
+| Wrong key                 | Banner: "Couldn't connect to the comment server" with the reason and Retry | Put `sk_wrong` in `.env.local` |
+| Connection lost           | Banner: "Reconnecting… new comments are paused"                            | DevTools → Network → Offline   |
+| Slow first connection     | After 8s, a banner with Retry instead of silence                           | Throttle the network           |
+| Click while offline       | Toast explaining why no composer opened                                    | Go offline, click the image    |
+| Empty comment             | Can't be sent (Liveblocks disables send for blank text)                    | Try to post spaces             |
+| Posting fails             | Toast, and the composer reopens at the same spot with the text             |                                |
+| Edit/delete/resolve fails | Toast; Liveblocks rolls the change back                                    |                                |
+| Image fails to load       | Message with Try again; comments are disabled until it loads               | Open `/?image=broken`          |
+| Unexpected render error   | Error boundary with Try again                                              |                                |
 
 The auth route returns 403 with a plain-text reason for key problems on
 purpose: the Liveblocks client stops retrying on 403 and passes the text to
@@ -193,13 +195,34 @@ the error listener, which the banner shows.
 ## Tests
 
 ```bash
-npm test
+npm test           # unit tests (Vitest)
+npm run test:e2e   # end-to-end tests (Playwright)
 ```
 
-Unit tests cover the coordinate maths, the flip rule (including the exact
-boundary and the zoomed-in case), the pan/zoom reducer, the connection
-banner states and the error messages. The interaction code was tested by
-hand in the browser.
+Run `npx playwright install chromium` once before the first e2e run.
+
+**Unit tests** cover the coordinate maths, the flip rule (including the
+exact boundary, the zoomed-in case and phones), the pan/zoom reducer, the
+connection banner states, room names and the error messages.
+
+**End-to-end tests** ([e2e/](e2e/)) run against a production build that
+[playwright.config.ts](playwright.config.ts) serves three ways:
+
+| Suite      | Liveblocks key    | What it checks                                                                                                                                 |
+| ---------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup`    | none              | The setup steps are shown instead of the app                                                                                                   |
+| `canvas`   | malformed         | Fit, zoom controls, drag to pan, the refused-connection banner and offline message, the image retry. Needs no account or network               |
+| `comments` | real (if present) | A comment stays on its spot through zoom and is saved; threads open inwards near the right edge; a second user sees a new comment in real time |
+
+The `comments` suite reads the key from `.env.local` (or the CI secret) and
+is skipped without one. Each test uses its own empty room via `?room=`, so
+test runs never touch the main room. These tests caught a real bug: the
+first visitor of a brand-new room got a disabled comment box (fixed by
+creating the room before the first connection).
+
+**CI** ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the
+type check, unit tests, build and end-to-end tests on every push. Add a
+`LIVEBLOCKS_SECRET_KEY` repository secret to include the `comments` suite.
 
 ## Decisions and trade-offs
 
@@ -245,6 +268,8 @@ I used Claude Code (Anthropic's Claude) throughout:
   the components, and this README, in small commits.
 - **Reviewing:** a second pass that tried to break the code and checked its
   claims against the library source.
+- **Part A:** a first draft of [RESPONSE.md](RESPONSE.md) (questions,
+  discovery plan and ticket), which I reviewed and edited.
 
 Things the AI got wrong that I caught and changed:
 
@@ -252,7 +277,7 @@ Things the AI got wrong that I caught and changed:
   with the space left, forgetting the 32px pin and 6px gap, and one
   suggestion used "anchor x > 0.5", which breaks when zoomed in because the
   image's right edge is then off screen. I wrote the rule against the
-  *visible* image edge and added boundary tests.
+  _visible_ image edge and added boundary tests.
 - **Popover scaling.** It claimed that scaling a wrapper would also scale
   the comment panels. They are portalled to `document.body`, so they would
   not; the real reason for the unscaled pin layer is constant pin size and a
